@@ -945,5 +945,6 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── 初始化 ──────────────────────────────────────────
+initCheckboxes();
 initProbBars();
 renderVisualization(null);
