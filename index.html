@@ -10,6 +10,7 @@
   <!-- 头部 -->
   <div class="header">
     <h1>🧠 手写数字识别神经网络 <small>784 → 128 → 64 → 10</small></h1>
+    <button id="btnHelp" class="help-btn" title="使用说明">📖 说明</button>
   </div>
 
   <!-- 工具栏 -->
@@ -46,10 +47,7 @@
     <div class="toolbar-group">
       <span class="toolbar-label">标准数据</span>
       <select id="batchCount" class="select-dropdown">
-        <option value="5">每数字5</option>
-        <option value="10" selected>每数字10</option>
-        <option value="20">每数字20</option>
-        <option value="50">每数字50</option>
+        <option value="50" selected>每数字50</option>
         <option value="100">每数字100</option>
       </select>
       <button id="btnBatchTrain" class="btn primary">🚀 批量训练</button>
@@ -103,8 +101,14 @@
 
     <!-- 右侧：权重视觉化 -->
     <div class="panel panel-right">
-      <div class="panel-title">📦 权重 W1</div>
+      <div class="panel-title">📦 权重可视化</div>
+      <div class="weight-tabs" id="weightTabs">
+        <button class="weight-tab active" data-layer="W1">W1 · 128×784</button>
+        <button class="weight-tab" data-layer="W2">W2 · 64×128</button>
+        <button class="weight-tab" data-layer="W3">W3 · 10×64</button>
+      </div>
       <canvas id="weightCanvas"></canvas>
+      <div class="weight-caption" id="weightCaption"></div>
     </div>
   </div>
 
@@ -121,6 +125,138 @@
     </div>
     <div class="status-item">
       网络: <span class="status-value" id="statusNetwork">初始状态</span>
+    </div>
+  </div>
+
+  <!-- 说明页模态框 -->
+  <div id="helpModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>📖 使用说明</h2>
+        <button id="btnHelpClose" class="modal-close" title="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <section>
+          <h3>网络结构</h3>
+          <p>输入层 784 (28×28 像素) → 隐藏层1 128 (ReLU) → 隐藏层2 64 (ReLU) → 输出层 10 (Softmax)。所有计算在浏览器本地完成，无需后端。</p>
+        </section>
+
+        <section>
+          <h3>快速上手</h3>
+          <ol>
+            <li>点击「🚀 批量训练」，选择每数字 50 或 100 张真实 MNIST 样本训练网络。</li>
+            <li>等待训练完成（状态栏会显示实时准确率与损失）。</li>
+            <li>切换到「识别」模式，在左侧画板手写一个数字，自动预测。</li>
+            <li>右侧概率条显示 0–9 每个数字的置信度，最下方为大号预测结果。</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3>单步训练</h3>
+          <p>切换到「训练」模式：手写一个数字 → 勾选正确的数字标签 → 点击「训练一次」。可观察中间激活图和右侧权重图的变化。</p>
+        </section>
+
+        <section>
+          <h3>界面说明</h3>
+          <table class="help-table">
+            <tr><th>区域</th><th>内容</th></tr>
+            <tr><td>左侧</td><td>手写画板 + 训练/识别控制面板</td></tr>
+            <tr><td>中间</td><td>网络激活可视化（输入→隐藏层1→隐藏层2→输出层）</td></tr>
+            <tr><td>右侧</td><td>权重可视化（可在 W1 / W2 / W3 之间切换）</td></tr>
+          </table>
+        </section>
+
+        <section>
+          <h3>权重 (Weights)</h3>
+          <p>权重是连接两层神经元的强度，决定了输入如何影响输出。本网络共有 <strong>三组权重矩阵</strong>（外加偏置 b1/b2/b3）：</p>
+          <table class="help-table">
+            <tr><th>权重</th><th>连接</th><th>尺寸 (行×列)</th><th>参数量</th></tr>
+            <tr><td>W1</td><td>输入层 → 隐藏层1</td><td>128 × 784</td><td>100,352</td></tr>
+            <tr><td>W2</td><td>隐藏层1 → 隐藏层2</td><td>64 × 128</td><td>8,192</td></tr>
+            <tr><td>W3</td><td>隐藏层2 → 输出层</td><td>10 × 64</td><td>640</td></tr>
+          </table>
+          <p style="margin-top:8px"><strong>尺寸约定</strong>：每行对应一个输出神经元，每列对应一个输入连接。例如 W1 是 128×784，即「128 个隐藏层1神经元，每个接收 784 个像素输入」。前向计算为 <code>output = W · input + b</code>。</p>
+        </section>
+
+        <section>
+          <h3>权重图怎么看</h3>
+          <p>右面板用顶部标签切换 W1 / W2 / W3，每个小图代表<strong>一个输出神经元的所有输入权重</strong>：</p>
+          <ul class="legend">
+            <li><span class="swatch pos"></span> 橙色 → 正权重（该输入激活此神经元）</li>
+            <li><span class="swatch neg"></span> 蓝色 → 负权重（该输入抑制此神经元）</li>
+            <li><span class="swatch zero"></span> 白色 → ≈ 零（几乎无影响）</li>
+          </ul>
+          <p style="margin-top:8px"><strong>W1</strong>：每个神经元的 784 个权重天然排成 28×28，可直接看作「像素特征模板」——训练后常能看出笔画轮廓。<strong>W2 / W3</strong>：输入不是图像，故把 fan-in 个权重排成最接近的方形小图（W2 为 √128≈12×12，W3 为 8×8），仅表示权重强弱分布；W3 每个小图左上角标注了对应的数字 0–9。</p>
+          <p style="margin-top:8px">每个小图<strong>独立归一化</strong>（除以自身最大绝对值），因此不同神经元之间颜色不可直接比较强弱，但能看清各自的权重结构。</p>
+        </section>
+
+        <section>
+          <h3>手写输入预处理</h3>
+          <p>手写笔画会经过 MNIST 标准预处理：裁剪笔画边界框 → 等比缩放到 20×20 → 按质心居中到 28×28。这使手写输入与训练数据分布对齐，是识别准确率的关键。</p>
+        </section>
+
+        <section>
+          <h3>学习率</h3>
+          <p>控制每步更新的幅度，<strong>0.05–0.1</strong> 推荐。太高会震荡，太低收敛慢。</p>
+        </section>
+
+        <section>
+          <h3>权重图颜色</h3>
+          <ul class="legend">
+            <li><span class="swatch pos"></span> 橙色 → 正权重（像素激活该神经元）</li>
+            <li><span class="swatch neg"></span> 蓝色 → 负权重（像素抑制该神经元）</li>
+            <li><span class="swatch zero"></span> 白色 → ≈ 零（无关）</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>键盘快捷键</h3>
+          <table class="help-table">
+            <tr><th>键</th><th>功能</th></tr>
+            <tr><td>Enter</td><td>训练一次（训练模式下）</td></tr>
+            <tr><td>0–9</td><td>快速选择数字标签</td></tr>
+            <tr><td>C</td><td>清空画板</td></tr>
+            <tr><td>R</td><td>识别（识别模式下）</td></tr>
+          </table>
+        </section>
+
+        <section>
+          <h3>导出 / 加载</h3>
+          <p>可将训练好的模型导出为 JSON 文件，下次通过「加载」恢复，无需重新训练。</p>
+        </section>
+
+        <section>
+          <h3>本项目是怎么来的（Vibe Coding 记录）</h3>
+          <p class="vibe-intro">这个页面是通过与 AI 的多轮对话逐步成型的，下面是其中几段关键对话，记录了从想法到成品的演进路径：</p>
+
+          <div class="chat">
+            <div class="chat-user">
+              <div class="chat-role">我</div>
+              <div class="chat-text">我在学习使用神经网络做手写数字识别，想做一个 web 页面展示训练和识别过程。初步设想 web 页面左侧是手写体输入框，可以用鼠标或手写板输入数字，中间是各层的神经网络，右侧是 10 个 checkbox 对应 0-9 数字，神经网络的各层数字可以在某个区域用图片的方式展现，每个点是其中一个参数的颜色转换。其中有个按钮切换训练还是识别模式，训练模式时，左侧输入数字，右侧选择结果，此时进行一次训练。识别模式时，左侧输入数字，右侧出结果。训练的参数可以导出文件，并可以进行加载，这种思路怎么样？</div>
+            </div>
+
+            <div class="chat-user">
+              <div class="chat-role">我</div>
+              <div class="chat-text">网络的权重能用一个图显示吗？</div>
+            </div>
+
+            <div class="chat-user">
+              <div class="chat-role">我</div>
+              <div class="chat-text">自己训练效果太差。下载 MNIST 数据集，增加一个利用数据集训练的功能。</div>
+            </div>
+
+            <div class="chat-user">
+              <div class="chat-role">我</div>
+              <div class="chat-text">训练出来的模型识别率很低。</div>
+            </div>
+
+            <div class="chat-ai">
+              <div class="chat-role">AI</div>
+              <div class="chat-text">根因明确：<code>sampleCanvas()</code> 直接整板降采样，没做 MNIST 标准的居中预处理。数字画偏一点，网络就认不出——这正是手写识别率低的元凶。修复方式：对采样结果做「裁剪笔画边界框 → 等比缩放到 20×20 → 按质心居中到 28×28」，使手写输入与训练数据分布对齐。</div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 
