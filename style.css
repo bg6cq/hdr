@@ -270,6 +270,14 @@ body {
   max-width: 600px;
 }
 
+#weightCanvas {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 8px;
+}
+}
+
 /* ── 右侧面板 ─────────────────────────────────────── */
 
 .right-section {

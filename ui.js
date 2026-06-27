@@ -319,6 +319,9 @@ function updateProbBars(probs, predicted) {
 
 // ── 网络可视化 ──────────────────────────────────────
 
+const weightCanvas = document.getElementById('weightCanvas');
+const wctx = weightCanvas.getContext('2d');
+
 function setupVisCanvas() {
   const container = visCanvas.parentElement;
   const width = Math.min(container.clientWidth - 32, 600);
@@ -329,6 +332,7 @@ function setupVisCanvas() {
 
 function renderVisualization(data) {
   setupVisCanvas();
+  renderWeights();  // 同时渲染权重图
   const w = visCanvas.width;
   const h = visCanvas.height;
 
@@ -434,7 +438,6 @@ function renderVisualization(data) {
     }
   }
 
-  // 层间连接线（装饰性）
   vctx.strokeStyle = 'rgba(255,255,255,0.03)';
   vctx.lineWidth = 0.5;
   for (let l = 0; l < 3; l++) {
@@ -447,6 +450,62 @@ function renderVisualization(data) {
     vctx.lineTo(x2, y2);
     vctx.stroke();
   }
+}
+
+// ── 权重可视化 ────────────────────────────────────
+
+function renderWeights() {
+  const container = weightCanvas.parentElement;
+  const cw = Math.min(container.clientWidth - 32, 600);
+  const cols = 16;
+  const cellSize = Math.floor(cw / cols);
+  const pixelSize = Math.max(2, Math.floor((cellSize - 2) / 28));
+  const gap = 1;
+  const thumbSize = pixelSize * 28 + gap;
+
+  const rows = Math.ceil(128 / cols);
+  const canvasW = cols * thumbSize;
+  const canvasH = rows * thumbSize + 30;
+
+  weightCanvas.width = canvasW;
+  weightCanvas.height = canvasH;
+
+  wctx.fillStyle = '#1a1a2e';
+  wctx.fillRect(0, 0, canvasW, canvasH);
+
+  const W1 = nn.W1;
+
+  // 找权重范围
+  let wMax = 0;
+  for (let i = 0; i < 128; i++)
+    for (let j = 0; j < 784; j++)
+      wMax = Math.max(wMax, Math.abs(W1[i][j]));
+
+  for (let n = 0; n < 128; n++) {
+    const col = n % cols;
+    const row = Math.floor(n / cols);
+    const bx = col * thumbSize;
+    const by = row * thumbSize;
+
+    for (let py = 0; py < 28; py++) {
+      for (let px = 0; px < 28; px++) {
+        const w = W1[n][py * 28 + px] / wMax;
+        wctx.fillStyle = w < 0
+          ? lerpColor('#ffffff', '#1565c0', -w)
+          : lerpColor('#ffffff', '#ff6f00', w);
+        wctx.fillRect(bx + px * pixelSize, by + py * pixelSize, pixelSize, pixelSize);
+      }
+    }
+
+    wctx.strokeStyle = '#2a3f6f';
+    wctx.lineWidth = 0.5;
+    wctx.strokeRect(bx, by, thumbSize - gap, thumbSize - gap);
+  }
+
+  wctx.fillStyle = '#8899aa';
+  wctx.font = '10px sans-serif';
+  wctx.textAlign = 'center';
+  wctx.fillText('第一层权重 W1 — 128 个神经元 × 28×28 (蓝=负 白≈0 橙=正)', canvasW / 2, canvasH - 5);
 }
 
 function getActivations(data) {
@@ -739,11 +798,12 @@ function argmax(arr) {
 
 window.addEventListener('resize', () => {
   if (state.mode === 'recognize' && state.hasInk) {
-    // 只重绘可视化，不重新识别
     const input = sampleCanvas();
     const { output } = nn.predict(input);
     renderVisualization({ input, output });
   } else if (state.hasInk) {
+    renderVisualization(null);
+  } else {
     renderVisualization(null);
   }
 });
