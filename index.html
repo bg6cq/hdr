@@ -58,7 +58,7 @@
 
   <!-- 主布局 -->
   <div class="main-layout">
-    <!-- 左侧：手写板 -->
+    <!-- 左侧：画板 + 输出面板 -->
     <div class="panel panel-left">
       <div class="panel-title">✏️ 手写输入</div>
       <div class="canvas-wrapper" id="canvasWrapper">
@@ -67,17 +67,9 @@
       <div class="canvas-info">
         28×28 像素 · 鼠标或手写板绘制
       </div>
-    </div>
 
-    <!-- 中间：网络可视化 -->
-    <div class="panel panel-center">
-      <div class="panel-title">🔬 网络激活 & 权重</div>
-      <canvas id="visCanvas"></canvas>
-      <canvas id="weightCanvas"></canvas>
-    </div>
+      <div class="left-divider"></div>
 
-    <!-- 右侧：训练/识别面板 -->
-    <div class="panel panel-right">
       <!-- 训练模式面板 -->
       <div id="trainPanel" class="right-section">
         <div class="right-section-title">🎯 选择正确数字</div>
@@ -101,6 +93,18 @@
           <div class="pred-digit" id="predDigit">-</div>
         </div>
       </div>
+    </div>
+
+    <!-- 中间：激活可视化 -->
+    <div class="panel panel-center">
+      <div class="panel-title">🔬 网络激活</div>
+      <canvas id="visCanvas"></canvas>
+    </div>
+
+    <!-- 右侧：权重视觉化 -->
+    <div class="panel panel-right">
+      <div class="panel-title">📦 权重 W1</div>
+      <canvas id="weightCanvas"></canvas>
     </div>
   </div>
 

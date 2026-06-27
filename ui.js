@@ -456,8 +456,9 @@ function renderVisualization(data) {
 
 function renderWeights() {
   const container = weightCanvas.parentElement;
-  const cw = Math.min(container.clientWidth - 32, 600);
-  const cols = 16;
+  const cw = container.clientWidth - 32;
+  // 右面板较窄，用 8 列 (8×16=128)
+  const cols = 8;
   const cellSize = Math.floor(cw / cols);
   const pixelSize = Math.max(2, Math.floor((cellSize - 2) / 28));
   const gap = 1;
@@ -465,7 +466,7 @@ function renderWeights() {
 
   const rows = Math.ceil(128 / cols);
   const canvasW = cols * thumbSize;
-  const canvasH = rows * thumbSize + 30;
+  const canvasH = rows * thumbSize;
 
   weightCanvas.width = canvasW;
   weightCanvas.height = canvasH;
@@ -475,7 +476,6 @@ function renderWeights() {
 
   const W1 = nn.W1;
 
-  // 找权重范围
   let wMax = 0;
   for (let i = 0; i < 128; i++)
     for (let j = 0; j < 784; j++)
@@ -501,11 +501,6 @@ function renderWeights() {
     wctx.lineWidth = 0.5;
     wctx.strokeRect(bx, by, thumbSize - gap, thumbSize - gap);
   }
-
-  wctx.fillStyle = '#8899aa';
-  wctx.font = '10px sans-serif';
-  wctx.textAlign = 'center';
-  wctx.fillText('第一层权重 W1 — 128 个神经元 × 28×28 (蓝=负 白≈0 橙=正)', canvasW / 2, canvasH - 5);
 }
 
 function getActivations(data) {
