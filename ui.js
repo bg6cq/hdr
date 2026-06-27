@@ -476,12 +476,12 @@ function renderWeights() {
 
   const W1 = nn.W1;
 
-  let wMax = 0;
-  for (let i = 0; i < 128; i++)
-    for (let j = 0; j < 784; j++)
-      wMax = Math.max(wMax, Math.abs(W1[i][j]));
-
   for (let n = 0; n < 128; n++) {
+    // 每个神经元独立归⼀，确保细节始终可见
+    let nMax = 0;
+    for (let j = 0; j < 784; j++) nMax = Math.max(nMax, Math.abs(W1[n][j]));
+    if (nMax < 1e-8) nMax = 1;
+
     const col = n % cols;
     const row = Math.floor(n / cols);
     const bx = col * thumbSize;
@@ -489,7 +489,7 @@ function renderWeights() {
 
     for (let py = 0; py < 28; py++) {
       for (let px = 0; px < 28; px++) {
-        const w = W1[n][py * 28 + px] / wMax;
+        const w = W1[n][py * 28 + px] / nMax;
         wctx.fillStyle = w < 0
           ? lerpColor('#ffffff', '#1565c0', -w)
           : lerpColor('#ffffff', '#ff6f00', w);
