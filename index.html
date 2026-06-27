@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>手写数字识别神经网络</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 头部 -->
+  <div class="header">
+    <h1>🧠 手写数字识别神经网络 <small>784 → 128 → 64 → 10</small></h1>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <span class="toolbar-label">模式</span>
+      <button id="btnTrainMode" class="btn active">训练</button>
+      <button id="btnRecogMode" class="btn">识别</button>
+    </div>
+
+    <div class="separator"></div>
+
+    <button id="btnClear" class="btn">🗑 清空</button>
+    <button id="btnRandomize" class="btn danger">↺ 重置网络</button>
+
+    <div class="separator"></div>
+
+    <div class="toolbar-group">
+      <span class="toolbar-label">学习率</span>
+      <div class="lr-control">
+        <input type="range" id="lrSlider" min="0.001" max="1.0" step="0.001" value="0.1">
+        <span class="lr-value" id="lrDisplay">0.100</span>
+      </div>
+    </div>
+
+    <div class="separator"></div>
+
+    <button id="btnExport" class="btn">⬇ 导出</button>
+    <button id="btnLoad" class="btn">⬆ 加载</button>
+    <input type="file" id="fileInput" accept=".json" hidden>
+
+    <div class="separator"></div>
+
+    <div class="toolbar-group">
+      <span class="toolbar-label">标准数据</span>
+      <select id="batchCount" class="select-dropdown">
+        <option value="5">每数字5</option>
+        <option value="10" selected>每数字10</option>
+        <option value="20">每数字20</option>
+        <option value="50">每数字50</option>
+        <option value="100">每数字100</option>
+      </select>
+      <button id="btnBatchTrain" class="btn primary">🚀 批量训练</button>
+    </div>
+  </div>
+
+  <!-- 主布局 -->
+  <div class="main-layout">
+    <!-- 左侧：手写板 -->
+    <div class="panel panel-left">
+      <div class="panel-title">✏️ 手写输入</div>
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="drawCanvas" width="280" height="280"></canvas>
+      </div>
+      <div class="canvas-info">
+        28×28 像素 · 鼠标或手写板绘制
+      </div>
+    </div>
+
+    <!-- 中间：网络可视化 -->
+    <div class="panel panel-center">
+      <div class="panel-title">🔬 网络激活可视化</div>
+      <canvas id="visCanvas"></canvas>
+    </div>
+
+    <!-- 右侧：训练/识别面板 -->
+    <div class="panel panel-right">
+      <!-- 训练模式面板 -->
+      <div id="trainPanel" class="right-section">
+        <div class="right-section-title">🎯 选择正确数字</div>
+        <div class="digit-checkboxes" id="digitCheckboxes">
+          <!-- 由 JS 生成 0-9 checkbox -->
+        </div>
+        <div style="margin-top: 12px;">
+          <button id="btnTrain" class="btn primary" style="width:100%;" disabled>训练一次</button>
+        </div>
+        <div id="trainResult" class="train-result hidden"></div>
+      </div>
+
+      <!-- 识别模式面板 -->
+      <div id="recogPanel" class="right-section hidden">
+        <div class="right-section-title">📊 识别概率</div>
+        <div class="probability-bars" id="probBars">
+          <!-- 由 JS 生成 0-9 概率条 -->
+        </div>
+        <div class="prob-prediction">
+          <div class="pred-label">预测结果</div>
+          <div class="pred-digit" id="predDigit">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <div class="status-item">
+      模式: <span class="status-value" id="statusMode">训练</span>
+    </div>
+    <div class="status-item">
+      已训练样本: <span class="status-value" id="statusSamples">0</span>
+    </div>
+    <div class="status-item">
+      最近损失: <span class="status-value" id="statusLoss">-</span>
+    </div>
+    <div class="status-item">
+      网络: <span class="status-value" id="statusNetwork">初始状态</span>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="net.js"></script>
+  <script src="ui.js"></script>
+  <script src="test.js"></script>
+</body>
+</html>
