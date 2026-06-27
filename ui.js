@@ -207,7 +207,8 @@ function setMode(mode) {
   document.getElementById('recogPanel').classList.toggle('hidden', mode !== 'recognize');
   document.getElementById('statusMode').textContent = mode === 'train' ? '训练' : '识别';
 
-  if (mode === 'recognize' && state.hasInk) {
+  // 切换到识别模式时，检测画板内容并自动识别
+  if (mode === 'recognize') {
     doRecognize();
   }
 }
@@ -254,10 +255,13 @@ document.getElementById('btnTrain').addEventListener('click', doTrain);
 // ── 识别 ────────────────────────────────────────────
 
 function doRecognize() {
-  if (!state.hasInk) return;
-
   const input = sampleCanvas();
+  const hasActivePixels = input.some(v => v > 0.05);
+  console.log('[识别] 有像素:', hasActivePixels, '最大值:', Math.max(...input).toFixed(3));
+  if (!hasActivePixels) return;
+
   const { output, predictedClass } = nn.predict(input);
+  console.log('[识别] 输出:', Array.from(output).map(v => v.toFixed(4)));
 
   // 更新概率条
   updateProbBars(output, predictedClass);
@@ -425,7 +429,7 @@ function renderVisualization(data) {
           vctx.fillText(`${(value * 100).toFixed(0)}%`, x + dotSize + 4, yPos + 4);
         }
 
-        drawNeuronDot(vctx, x, yPos, dotSize, value, false);
+        drawNeuronDot(vctx, x, yPos, dotSize, value, false, layer === 3);
       }
     }
   }
@@ -462,11 +466,14 @@ function getActivations(data) {
   }
 }
 
-function drawNeuronDot(ctx, x, y, radius, value, isInput) {
+function drawNeuronDot(ctx, x, y, radius, value, isInput, isOutput) {
   // 输入层用灰阶
   if (isInput) {
     const intensity = Math.round(255 * (1 - value));
     ctx.fillStyle = `rgb(${intensity},${intensity},${intensity})`;
+  } else if (isOutput) {
+    // 输出层用专用色阶，微小的概率变化也能看到
+    ctx.fillStyle = outputColor(value);
   } else {
     // 激活层用颜色映射
     ctx.fillStyle = activationColor(value);
@@ -493,6 +500,19 @@ function activationColor(value) {
     const t = Math.min((value - 0.6) / 0.4, 1);
     return lerpColor('#ff6f00', '#ff1744', t);
   }
+}
+
+function outputColor(value) {
+  // 输出层专用色阶: 即使概率只有微小差异也能肉眼分辨
+  // 50%→白绿, 30%→亮黄, 15%→橙蓝, 10%→紫, 5%以下→深紫
+  if (value < 0.03) return '#0d001a';
+  if (value < 0.08) return lerpColor('#0d001a', '#4a0072', (value - 0.03) / 0.05);
+  if (value < 0.12) return lerpColor('#4a0072', '#004d40', (value - 0.08) / 0.04);
+  if (value < 0.18) return lerpColor('#004d40', '#006064', (value - 0.12) / 0.06);
+  if (value < 0.30) return lerpColor('#006064', '#00c853', (value - 0.18) / 0.12);
+  if (value < 0.50) return lerpColor('#00c853', '#76ff03', (value - 0.30) / 0.20);
+  if (value < 0.75) return lerpColor('#76ff03', '#ffea00', (value - 0.50) / 0.25);
+  return lerpColor('#ffea00', '#ff1744', Math.min((value - 0.75) / 0.25, 1));
 }
 
 function lerpColor(c1, c2, t) {
@@ -577,32 +597,36 @@ document.getElementById('lrSlider').addEventListener('input', (e) => {
 // ── 批量训练 ─────────────────────────────────────────
 
 let batchTraining = false;
+let mnistLoader = null;
+
+// 页面加载时初始化 MNIST 数据
+(async function initMNIST() {
+  try {
+    mnistLoader = new MNISTLoader();
+    await mnistLoader.load('mnist_subset.json');
+    console.log('MNIST 数据加载完成');
+    document.getElementById('statusNetwork').textContent = `MNIST 已加载 (${mnistLoader.dataset.length} 样本)`;
+  } catch (e) {
+    console.warn('MNIST 数据加载失败，请确认 mnist_subset.json 存在:', e.message);
+    document.getElementById('btnBatchTrain').disabled = true;
+    document.getElementById('btnBatchTrain').textContent = '❌ 数据未加载';
+  }
+})();
 
 document.getElementById('btnBatchTrain').addEventListener('click', async () => {
-  if (batchTraining) return;
+  if (batchTraining || !mnistLoader) return;
 
   const countPerDigit = parseInt(document.getElementById('batchCount').value);
-  const total = countPerDigit * 10;
   const btn = document.getElementById('btnBatchTrain');
-  const origText = btn.textContent;
 
   batchTraining = true;
   btn.disabled = true;
-  btn.textContent = `⏳ 训练中 0/${total}...`;
+  btn.textContent = `⏳ 准备数据...`;
   document.getElementById('statusNetwork').textContent = '批量训练中...';
 
-  // 生成标准数据 - 每个样本端点随机抖动，形状各不相同
-  const gen = new DigitDataGenerator();
-  const dataset = gen.generate(countPerDigit, {
-    maxShift: 3,
-    maxSlant: 0.3,
-    minThickness: 1.0,
-    maxThickness: 2.5,
-    noiseLevel: 0.02,
-    jitter: 1.8,        // 端点抖动: 每次生成的"3"笔画路径都不同
-  });
-
-  // 打乱数据
+  // 从 MNIST 取类别平衡的数据
+  const dataset = mnistLoader.getBalanced(countPerDigit);
+  const total = dataset.length;
   shuffleArray(dataset);
 
   // 训练配置
@@ -633,6 +657,9 @@ document.getElementById('btnBatchTrain').addEventListener('click', async () => {
       btn.textContent = `⏳ ${epoch + 1}/${epochs} acc:${epochAcc}% loss:${avgLoss.toFixed(3)}`;
       document.getElementById('statusLoss').textContent = avgLoss.toFixed(4);
       document.getElementById('statusSamples').textContent = nn.trainingCount;
+
+      // 用当前批次的第一个样本刷新可视化
+      renderVisualization({ input: batch[0].input });
 
       await sleep(0);
     }
