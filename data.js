@@ -27,7 +27,7 @@ class MNISTLoader {
 
     const raw = await resp.json();
     this.dataset = raw.map(item => ({
-      input: new Float64Array(item.input),
+      input: new Float64Array(item.input.map(v => v / 255)),
       label: item.label,
     }));
 
