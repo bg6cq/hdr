@@ -59,6 +59,10 @@
 使用 **MNIST 数据集**（5000 张真实手写数字，每数字 500 张）。
 像素值以 0-255 整数压缩存储（8.8MB），加载时浏览器自动 /255 还原。
 
+> MNIST 数据集由 **Yann LeCun、Corinna Cortes 和 Christopher J.C. Burges** 整理维护，
+> 基于 NIST Special Database 19 构建。
+> 官方网站：http://yann.lecun.com/exdb/mnist/
+
 | 每数字数 | 总样本 | 测试准确率（30 epoch） |
 |----------|--------|----------------------|
 | 50 | 500 | ~89% |
