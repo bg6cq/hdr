@@ -18,14 +18,22 @@ class MNISTLoader {
   }
 
   /**
-   * 从 JSON 文件加载 MNIST 数据
-   * @param {string} url - JSON 文件路径
+   * 从 JS 嵌入变量或 JSON 文件加载 MNIST 数据
+   * @param {string} url - JSON 文件路径（仅在 window.MNIST_DATA 不存在时使用）
    */
   async load(url) {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`加载失败: ${resp.status}`);
+    let raw;
 
-    const raw = await resp.json();
+    // 优先使用 <script> 嵌入的数据（解决 file:// 协议下 fetch 被拦截的问题）
+    if (window.MNIST_DATA) {
+      raw = window.MNIST_DATA;
+      console.log('MNIST: 使用嵌入数据');
+    } else {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`加载失败: ${resp.status}`);
+      raw = await resp.json();
+    }
+
     this.dataset = raw.map(item => ({
       input: new Float64Array(item.input.map(v => v / 255)),
       label: item.label,
